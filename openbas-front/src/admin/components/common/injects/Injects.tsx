@@ -92,11 +92,8 @@ const inlineStyles: Record<string, CSSProperties> = {
 
 interface Props {
   exerciseOrScenarioId: string
-
   setViewMode?: (mode: string) => void
-
   availableButtons: string[]
-
   teams: TeamStore[]
   articles: ArticleStore[]
   variables: Variable[]
