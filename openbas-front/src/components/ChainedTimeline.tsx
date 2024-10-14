@@ -37,6 +37,7 @@ import { useFormatter } from './i18n';
 import type { AssetGroupsHelper } from '../actions/asset_groups/assetgroup-helper';
 import type { EndpointHelper } from '../actions/assets/asset-helper';
 import type { Inject } from '../utils/api-types';
+import chainingUtils from './common/chaining/ChainingUtils';
 
 const useStyles = makeStyles(() => ({
   container: {
@@ -121,6 +122,7 @@ const ChainedTimelineFlow: FunctionComponent<Props> = ({
   ];
   const gapSize = 125;
   const newNodeSize = 50;
+  const rowHeight = 200;
 
   let startDate: string | undefined;
 
@@ -148,32 +150,111 @@ const ChainedTimelineFlow: FunctionComponent<Props> = ({
   };
 
   /**
+   * Move item from an index to another one
+   * @param array the array to update
+   * @param to the target index
+   * @param from the origin index
+   */
+  const moveItem = (array: NodeInject[], to: number, from: number) => {
+    const item = array[from];
+    array.splice(from, 1);
+    array.splice(to, 0, item);
+    return array;
+  };
+
+  /**
+   * Calculate a bounding box for an index
+   * @param currentNode the node to calculate the bounding box for
+   * @param nodesAvailable the nodes
+   */
+  const calculateBoundingBox = (currentNode: NodeInject, nodesAvailable: NodeInject[]) => {
+    if (currentNode.data.inject?.inject_depends_on) {
+      const nodesId = Object.keys(currentNode.data.inject?.inject_depends_on);
+      const dependencies = nodesAvailable.filter((dependencyNode) => nodesId.includes(dependencyNode.id));
+      const minX = Math.min(currentNode.position.x, ...dependencies.map((value) => value.data.boundingBox!.topLeft.x));
+      const minY = Math.min(currentNode.position.y, ...dependencies.map((value) => value.data.boundingBox!.topLeft.y));
+      const maxX = Math.max(currentNode.position.x + 250, ...dependencies.map((value) => value.data.boundingBox!.bottomRight.x));
+      const maxY = Math.max(currentNode.position.y + 200, ...dependencies.map((value) => value.data.boundingBox!.bottomRight.y));
+      return {
+        topLeft: { x: minX, y: minY },
+        bottomRight: { x: maxX, y: maxY },
+      };
+    }
+    return {
+      topLeft: currentNode.position,
+      bottomRight: { x: currentNode.position.x + 250, y: currentNode.position.y + 200 },
+    };
+  };
+
+  const doBoundingBoxOverlap = (boundingBox1: { topLeft: XYPosition, bottomRight: XYPosition }, boundingBox2: { topLeft: XYPosition, bottomRight: XYPosition }) => {
+    // The first rectangle is under the second or vice versa
+    if (boundingBox1.bottomRight.y <= boundingBox2.topLeft.y || boundingBox2.bottomRight.y <= boundingBox1.topLeft.y) {
+      return false;
+    }
+    // The first rectangle is to the left of the second or vice versa
+    if (boundingBox1.bottomRight.x < boundingBox2.topLeft.x || boundingBox2.bottomRight.x < boundingBox1.topLeft.x) {
+      return false;
+    }
+    // Rectangles overlap
+    return true;
+  };
+
+  /**
    * Calculate injects position when dragging stopped
    * @param nodeInjects the list of injects
    */
   const calculateInjectPosition = (nodeInjects: NodeInject[]) => {
-    nodeInjects.forEach((nodeInject, index) => {
+    let reorganizedInjects = nodeInjects;
+    for (let i = 0; i < nodeInjects.length; i += 1) {
+      let childrens = reorganizedInjects.slice(i).filter((nextNode) => nextNode.id !== nodeInjects[i].id
+          && nextNode.data.inject?.inject_depends_on !== undefined
+          && nextNode.data.inject?.inject_depends_on !== null
+          && nodeInjects[i].id in nextNode.data.inject!.inject_depends_on);
+
+      childrens = childrens.sort((a, b) => a.data.inject!.inject_depends_duration - b.data.inject!.inject_depends_duration);
+
+      for (let j = 0; j < childrens.length; j += 1) {
+        reorganizedInjects = moveItem(reorganizedInjects, i + j + 1, reorganizedInjects.indexOf(childrens[j], i));
+      }
+    }
+
+    for (let index = 0; index < reorganizedInjects.length; index += 1) {
+      const nodeInject = reorganizedInjects[index];
       let row = 0;
       let rowFound = true;
       const nodeInjectPosition = nodeInject.position;
       const nodeInjectData = nodeInject.data;
       do {
-        const previousNodes = nodeInjects.slice(0, index)
-          .filter((previousNode) => nodeInject.position.x >= previousNode.position.x && nodeInject.position.x < previousNode.position.x + 250);
+        const previousNodes = reorganizedInjects.slice(0, index)
+          .filter((previousNode) => previousNode.data.boundingBox !== undefined
+              && nodeInjectData.boundingBox !== undefined
+              && nodeInjectData.boundingBox?.topLeft.x >= previousNode.data.boundingBox.topLeft.x
+              && nodeInjectData.boundingBox?.topLeft.x < previousNode.data.boundingBox.bottomRight.x);
 
-        for (let i = 0; i < previousNodes.length; i += 1) {
-          const previousNode = previousNodes[i];
-          if (previousNode.position.y + 150 > row * 150 && previousNode.position.y <= row * 150) {
-            row += 1;
-            rowFound = false;
-          } else {
-            nodeInjectPosition.y = 150 * row;
-            nodeInjectData.fixedY = nodeInject.position.y;
-            rowFound = true;
+        nodeInjectPosition.y = rowHeight * row;
+        nodeInjectData.fixedY = nodeInject.position.y;
+        nodeInjectData.boundingBox = {
+          topLeft: nodeInjectPosition,
+          bottomRight: { x: nodeInjectPosition.x + 250, y: nodeInjectPosition.y + 200 },
+        };
+        if (previousNodes.length > 0) {
+          for (let i = 0; i < previousNodes.length; i += 1) {
+            console.log(nodeInjectData.boundingBox.topLeft.y);
+            const previousNode = previousNodes[i];
+            if (previousNode.data.boundingBox !== undefined
+                && doBoundingBoxOverlap(previousNode.data.boundingBox, nodeInjectData.boundingBox)) {
+              row += 1;
+              rowFound = false;
+            } else {
+              rowFound = true;
+              nodeInjectData.boundingBox = calculateBoundingBox(nodeInject, reorganizedInjects);
+            }
           }
+        } else {
+          rowFound = true;
         }
       } while (!rowFound);
-    });
+    }
   };
 
   const updateEdges = () => {
@@ -188,9 +269,9 @@ const ChainedTimelineFlow: FunctionComponent<Props> = ({
               targetHandle: `target-${inject.inject_id}`,
               source: `${key}`,
               sourceHandle: `source-${key}`,
-              label: '',
+              label: chainingUtils.fromInjectDependencyToLabel(inject.inject_depends_on[key]),
               labelShowBg: false,
-              labelStyle: { fill: theme.palette.text?.primary, fontSize: 9 },
+              labelStyle: { fill: theme.palette.text?.primary, fontSize: 14 },
             });
           }
         }
@@ -223,6 +304,10 @@ const ChainedTimelineFlow: FunctionComponent<Props> = ({
             fixedY: 0,
             startDate,
             onSelectedInject,
+            boundingBox: {
+              topLeft: { x: (inject.inject_depends_duration / 60) * (gapSize / minutesPerGapAllowed[minutesPerGapIndex]), y: 0 },
+              bottomRight: { x: (inject.inject_depends_duration / 60) * (gapSize / minutesPerGapAllowed[minutesPerGapIndex]) + 250, y: rowHeight },
+            },
             targets: inject.inject_assets!.map((asset) => assets[asset]?.asset_name)
               .concat(inject.inject_asset_groups!.map((assetGroup) => assetGroups[assetGroup]?.asset_group_name))
               .concat(inject.inject_teams!.map((team) => teams[team]?.team_name)),
