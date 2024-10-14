@@ -49,8 +49,8 @@ public class RabbitMQHelper {
         // If we already have the version, we don't need to get it again
         if (rabbitMQVersion == null) {
             // Init the rabbit MQ management api overview url
-            String uri = rabbitmqConfig.isSsl() ? "https://" : "http://"
-                    + rabbitmqConfig.getHostname() + ":" + rabbitmqConfig.getManagementPort()
+            String uri = rabbitmqConfig.isSsl() ? "https://" : "http://";
+            uri += rabbitmqConfig.getHostname() + ":" + rabbitmqConfig.getManagementPort()
                     + "/api/overview";
 
             RestTemplate restTemplate;
