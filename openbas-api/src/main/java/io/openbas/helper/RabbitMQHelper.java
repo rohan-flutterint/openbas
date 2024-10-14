@@ -10,6 +10,7 @@ import org.apache.hc.client5.http.socket.ConnectionSocketFactory;
 import org.apache.hc.client5.http.socket.PlainConnectionSocketFactory;
 import org.apache.hc.client5.http.ssl.NoopHostnameVerifier;
 import org.apache.hc.client5.http.ssl.SSLConnectionSocketFactory;
+import org.apache.hc.client5.http.ssl.TrustSelfSignedStrategy;
 import org.apache.hc.core5.http.config.Registry;
 import org.apache.hc.core5.http.config.RegistryBuilder;
 import org.apache.hc.core5.ssl.SSLContextBuilder;
@@ -111,10 +112,9 @@ public class RabbitMQHelper {
             requestFactoryHttp.setHttpClient(httpClient);
             restTemplate = new RestTemplate(requestFactoryHttp);
         } else if (rabbitmqConfig.isSsl()) {
-            KeyStore keyStore = KeyStore.getInstance(rabbitmqConfig.getTrustStore().getFile(), rabbitmqConfig.getTrustStorePassword().toCharArray());
-
             SSLContext sslContext = new SSLContextBuilder()
-                    .loadKeyMaterial(keyStore, rabbitmqConfig.getTrustStorePassword().toCharArray()).build();
+                    .loadTrustMaterial(rabbitmqConfig.getTrustStore().getFile(), rabbitmqConfig.getTrustStorePassword().toCharArray())
+                    .build();
             SSLConnectionSocketFactory sslConFactory = new SSLConnectionSocketFactory(sslContext);
             HttpClientConnectionManager cm = PoolingHttpClientConnectionManagerBuilder.create()
                     .setSSLSocketFactory(sslConFactory)
