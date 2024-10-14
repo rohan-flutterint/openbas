@@ -25,9 +25,7 @@ import org.springframework.web.client.RestTemplate;
 
 import javax.net.ssl.SSLContext;
 import java.io.IOException;
-import java.security.KeyManagementException;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
+import java.security.*;
 import java.security.cert.CertificateException;
 import java.time.Duration;
 import java.util.Collections;
@@ -56,7 +54,8 @@ public class RabbitMQHelper {
             RestTemplate restTemplate;
             try {
                 restTemplate = restTemplate(rabbitmqConfig);
-            } catch (KeyStoreException | NoSuchAlgorithmException | KeyManagementException | CertificateException | IOException e) {
+            } catch (KeyStoreException | NoSuchAlgorithmException | KeyManagementException | CertificateException |
+                     IOException | UnrecoverableKeyException e) {
                 LOGGER.severe(e.getMessage());
                 return null;
             }
@@ -85,7 +84,7 @@ public class RabbitMQHelper {
     }
 
     private static RestTemplate restTemplate(RabbitmqConfig rabbitmqConfig)
-            throws KeyStoreException, NoSuchAlgorithmException, KeyManagementException, IOException, CertificateException {
+            throws KeyStoreException, NoSuchAlgorithmException, KeyManagementException, IOException, CertificateException, UnrecoverableKeyException {
         RestTemplate restTemplate = new RestTemplateBuilder()
                 .setConnectTimeout(Duration.ofSeconds(2))
                 .setReadTimeout(Duration.ofSeconds(2))
@@ -112,8 +111,10 @@ public class RabbitMQHelper {
             requestFactoryHttp.setHttpClient(httpClient);
             restTemplate = new RestTemplate(requestFactoryHttp);
         } else if (rabbitmqConfig.isSsl()) {
+            KeyStore keyStore = KeyStore.getInstance(rabbitmqConfig.getTrustStore().getFile(), rabbitmqConfig.getTrustStorePassword().toCharArray());
+
             SSLContext sslContext = new SSLContextBuilder()
-                    .loadTrustMaterial(rabbitmqConfig.getTrustStore().getURL(), rabbitmqConfig.getTrustStorePassword().toCharArray()).build();
+                    .loadKeyMaterial(keyStore, rabbitmqConfig.getTrustStorePassword().toCharArray()).build();
             SSLConnectionSocketFactory sslConFactory = new SSLConnectionSocketFactory(sslContext);
             HttpClientConnectionManager cm = PoolingHttpClientConnectionManagerBuilder.create()
                     .setSSLSocketFactory(sslConFactory)
