@@ -217,8 +217,6 @@ const ChainedTimelineFlow: FunctionComponent<Props> = ({
             && nodeInjectData.boundingBox?.topLeft.x >= previousNode.data.boundingBox.topLeft.x
             && nodeInjectData.boundingBox?.topLeft.x < previousNode.data.boundingBox.bottomRight.x);
 
-      console.log(previousNodes);
-
       const maxY = Math.max(0, ...previousNodes
         .map((previousNode) => (previousNode.data.boundingBox?.bottomRight.y ? previousNode.data.boundingBox?.bottomRight.y : 0)));
 
