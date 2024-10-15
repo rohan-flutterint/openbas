@@ -186,19 +186,6 @@ const ChainedTimelineFlow: FunctionComponent<Props> = ({
     };
   };
 
-  const doBoundingBoxOverlap = (boundingBox1: { topLeft: XYPosition, bottomRight: XYPosition }, boundingBox2: { topLeft: XYPosition, bottomRight: XYPosition }) => {
-    // The first rectangle is under the second or vice versa
-    if (boundingBox1.bottomRight.y <= boundingBox2.topLeft.y || boundingBox2.bottomRight.y <= boundingBox1.topLeft.y) {
-      return false;
-    }
-    // The first rectangle is to the left of the second or vice versa
-    if (boundingBox1.bottomRight.x < boundingBox2.topLeft.x || boundingBox2.bottomRight.x < boundingBox1.topLeft.x) {
-      return false;
-    }
-    // Rectangles overlap
-    return true;
-  };
-
   /**
    * Calculate injects position when dragging stopped
    * @param nodeInjects the list of injects
@@ -220,40 +207,24 @@ const ChainedTimelineFlow: FunctionComponent<Props> = ({
 
     for (let index = 0; index < reorganizedInjects.length; index += 1) {
       const nodeInject = reorganizedInjects[index];
-      let row = 0;
-      let rowFound = true;
       const nodeInjectPosition = nodeInject.position;
       const nodeInjectData = nodeInject.data;
-      do {
-        const previousNodes = reorganizedInjects.slice(0, index)
-          .filter((previousNode) => previousNode.data.boundingBox !== undefined
-              && nodeInjectData.boundingBox !== undefined
-              && nodeInjectData.boundingBox?.topLeft.x >= previousNode.data.boundingBox.topLeft.x
-              && nodeInjectData.boundingBox?.topLeft.x < previousNode.data.boundingBox.bottomRight.x);
 
-        nodeInjectPosition.y = rowHeight * row;
-        nodeInjectData.fixedY = nodeInject.position.y;
-        nodeInjectData.boundingBox = {
-          topLeft: nodeInjectPosition,
-          bottomRight: { x: nodeInjectPosition.x + 250, y: nodeInjectPosition.y + 200 },
-        };
-        if (previousNodes.length > 0) {
-          for (let i = 0; i < previousNodes.length; i += 1) {
-            console.log(nodeInjectData.boundingBox.topLeft.y);
-            const previousNode = previousNodes[i];
-            if (previousNode.data.boundingBox !== undefined
-                && doBoundingBoxOverlap(previousNode.data.boundingBox, nodeInjectData.boundingBox)) {
-              row += 1;
-              rowFound = false;
-            } else {
-              rowFound = true;
-              nodeInjectData.boundingBox = calculateBoundingBox(nodeInject, reorganizedInjects);
-            }
-          }
-        } else {
-          rowFound = true;
-        }
-      } while (!rowFound);
+      const previousNodes = reorganizedInjects.slice(0, index)
+        .filter((previousNode) => previousNode.data.boundingBox !== undefined
+            && nodeInjectData.boundingBox !== undefined
+            && nodeInjectData.boundingBox?.topLeft.x >= previousNode.data.boundingBox.topLeft.x
+            && nodeInjectData.boundingBox?.topLeft.x < previousNode.data.boundingBox.bottomRight.x);
+
+      console.log(previousNodes);
+
+      const maxY = Math.max(0, ...previousNodes
+        .map((previousNode) => (previousNode.data.boundingBox?.bottomRight.y ? previousNode.data.boundingBox?.bottomRight.y : 0)));
+
+      nodeInjectPosition.y = previousNodes.length === 0 ? 0 : maxY;
+      nodeInjectData.fixedY = nodeInjectPosition.y;
+      nodeInjectData.boundingBox = calculateBoundingBox(nodeInject, reorganizedInjects);
+      reorganizedInjects[index] = nodeInject;
     }
   };
 
