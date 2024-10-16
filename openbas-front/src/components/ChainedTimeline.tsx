@@ -122,7 +122,7 @@ const ChainedTimelineFlow: FunctionComponent<Props> = ({
   ];
   const gapSize = 125;
   const newNodeSize = 50;
-  const nodeHeightClearance = 200;
+  const nodeHeightClearance = 220;
   const nodeWidthClearance = 350;
 
   let startDate: string | undefined;
@@ -262,7 +262,7 @@ const ChainedTimelineFlow: FunctionComponent<Props> = ({
               sourceHandle: `source-${key}`,
               label: chainingUtils.fromInjectDependencyToLabel(inject.inject_depends_on[key]),
               labelShowBg: false,
-              labelStyle: { fill: theme.palette.text?.primary, fontSize: 14 },
+              labelStyle: { fill: theme.palette.text?.primary, fontSize: 14, width: 20 },
             });
           }
         }
@@ -362,6 +362,7 @@ const ChainedTimelineFlow: FunctionComponent<Props> = ({
         inject_injector_contract: injectFromMap.inject_injector_contract.injector_contract_id,
         inject_id: node.id,
         inject_depends_duration: convertCoordinatesToTime(node.position),
+        inject_depends_on: chainingUtils.fromInjectDependencyToInputDependency(injectFromMap.inject_depends_on),
       };
       onUpdateInject([inject]);
       setCurrentUpdatedNode(node);

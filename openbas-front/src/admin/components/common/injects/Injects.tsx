@@ -264,7 +264,7 @@ const Injects: FunctionComponent<Props> = ({
           });
           const newResult = {
             ...result.entities.injects[result.result],
-            inject_depends_on: dependingOn,
+            inject_depends_on: Object.keys(dependingOn).length === 0 ? null : dependingOn,
           };
           return newResult as never;
         }
