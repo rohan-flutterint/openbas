@@ -4,9 +4,8 @@ import io.openbas.database.model.Asset;
 import io.openbas.database.model.AssetGroup;
 import io.openbas.database.model.Filters.FilterGroup;
 import io.openbas.database.model.Tag;
-import lombok.Data;
-
 import java.util.List;
+import lombok.Data;
 
 @Data
 public class RawPaginationAssetGroup {

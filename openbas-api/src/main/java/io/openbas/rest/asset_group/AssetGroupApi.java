@@ -1,5 +1,9 @@
 package io.openbas.rest.asset_group;
 
+import static io.openbas.database.model.User.ROLE_USER;
+import static io.openbas.helper.StreamHelper.iterableToSet;
+import static io.openbas.utils.pagination.PaginationUtils.buildPaginationJPA;
+
 import io.openbas.asset.AssetGroupService;
 import io.openbas.database.model.AssetGroup;
 import io.openbas.database.raw.RawPaginationAssetGroup;
@@ -11,17 +15,12 @@ import io.openbas.utils.pagination.SearchPaginationInput;
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.security.access.annotation.Secured;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
-
-import static io.openbas.database.model.User.ROLE_USER;
-import static io.openbas.helper.StreamHelper.iterableToSet;
-import static io.openbas.utils.pagination.PaginationUtils.buildPaginationJPA;
 
 @RestController
 @RequiredArgsConstructor
@@ -52,12 +51,10 @@ public class AssetGroupApi {
 
   @PostMapping(ASSET_GROUP_URI + "/search")
   @PreAuthorize("isObserver()")
-  public Page<RawPaginationAssetGroup> assetGroups(@RequestBody @Valid SearchPaginationInput searchPaginationInput) {
+  public Page<RawPaginationAssetGroup> assetGroups(
+      @RequestBody @Valid SearchPaginationInput searchPaginationInput) {
     return buildPaginationJPA(
-        this.assetGroupRepository::findAll,
-        searchPaginationInput,
-        AssetGroup.class
-    )
+            this.assetGroupRepository::findAll, searchPaginationInput, AssetGroup.class)
         .map(RawPaginationAssetGroup::new);
   }
 
@@ -95,5 +92,4 @@ public class AssetGroupApi {
   public void deleteAssetGroup(@PathVariable @NotBlank final String assetGroupId) {
     this.assetGroupService.deleteAssetGroup(assetGroupId);
   }
-
 }

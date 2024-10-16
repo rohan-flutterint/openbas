@@ -1,5 +1,10 @@
 package io.openbas.rest.scenario;
 
+import static io.openbas.database.model.User.ROLE_USER;
+import static io.openbas.database.specification.ExerciseSpecification.fromScenario;
+import static io.openbas.rest.scenario.ScenarioApi.SCENARIO_URI;
+import static io.openbas.utils.pagination.PaginationUtils.buildPaginationCriteriaBuilder;
+
 import io.openbas.database.model.Exercise;
 import io.openbas.database.repository.ExerciseRepository;
 import io.openbas.rest.exercise.ExerciseService;
@@ -14,11 +19,6 @@ import org.springframework.security.access.annotation.Secured;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import static io.openbas.database.model.User.ROLE_USER;
-import static io.openbas.database.specification.ExerciseSpecification.fromScenario;
-import static io.openbas.rest.scenario.ScenarioApi.SCENARIO_URI;
-import static io.openbas.utils.pagination.PaginationUtils.buildPaginationCriteriaBuilder;
-
 @RestController
 @Secured(ROLE_USER)
 @RequiredArgsConstructor
@@ -29,9 +29,11 @@ public class ScenarioExerciseApi {
 
   @GetMapping(SCENARIO_URI + "/{scenarioId}/exercises")
   @PreAuthorize("isScenarioObserver(#scenarioId)")
-  public Iterable<ExerciseSimple> scenarioExercises(@PathVariable @NotBlank final String scenarioId) {
-    return this.exerciseRepository.findAll(fromScenario(scenarioId))
-        .stream().map(ExerciseSimple::fromExercise).toList();
+  public Iterable<ExerciseSimple> scenarioExercises(
+      @PathVariable @NotBlank final String scenarioId) {
+    return this.exerciseRepository.findAll(fromScenario(scenarioId)).stream()
+        .map(ExerciseSimple::fromExercise)
+        .toList();
   }
 
   @PostMapping(SCENARIO_URI + "/{scenarioId}/exercises/search")
@@ -40,14 +42,14 @@ public class ScenarioExerciseApi {
       @PathVariable @NotBlank final String scenarioId,
       @RequestBody @Valid final SearchPaginationInput searchPaginationInput) {
     return buildPaginationCriteriaBuilder(
-        (Specification<Exercise> specification, Specification<Exercise> specificationCount, Pageable pageable) -> this.exerciseService.exercises(
-            fromScenario(scenarioId).and(specification),
-            fromScenario(scenarioId).and(specificationCount),
-            pageable
-        ),
+        (Specification<Exercise> specification,
+            Specification<Exercise> specificationCount,
+            Pageable pageable) ->
+            this.exerciseService.exercises(
+                fromScenario(scenarioId).and(specification),
+                fromScenario(scenarioId).and(specificationCount),
+                pageable),
         searchPaginationInput,
-        Exercise.class
-    );
+        Exercise.class);
   }
-
 }

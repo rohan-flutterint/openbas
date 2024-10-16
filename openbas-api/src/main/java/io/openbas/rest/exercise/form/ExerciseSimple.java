@@ -1,5 +1,9 @@
 package io.openbas.rest.exercise.form;
 
+import static io.openbas.utils.ResultUtils.computeGlobalExpectationResults;
+import static io.openbas.utils.ResultUtils.computeTargetResults;
+import static java.time.Instant.now;
+
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
@@ -16,20 +20,15 @@ import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import lombok.Getter;
-import lombok.Setter;
-import org.springframework.beans.BeanUtils;
-
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
-
-import static io.openbas.utils.ResultUtils.computeGlobalExpectationResults;
-import static io.openbas.utils.ResultUtils.computeTargetResults;
-import static java.time.Instant.now;
+import lombok.Getter;
+import lombok.Setter;
+import org.springframework.beans.BeanUtils;
 
 @Setter
 @Getter
@@ -63,11 +62,11 @@ public class ExerciseSimple {
   @JsonProperty("exercise_tags")
   private Set<Tag> tags = new HashSet<>();
 
-  @JsonIgnore
-  private String[] injectIds;
+  @JsonIgnore private String[] injectIds;
 
   @JsonProperty("exercise_global_score")
-  private List<AtomicTestingMapper.ExpectationResultsByType> expectationResultByTypes = new ArrayList<>();
+  private List<AtomicTestingMapper.ExpectationResultsByType> expectationResultByTypes =
+      new ArrayList<>();
 
   @JsonProperty("exercise_targets")
   @NotNull
@@ -85,6 +84,7 @@ public class ExerciseSimple {
 
   /**
    * Create a classic Exercise object from a Raw one
+   *
    * @param exercise the raw exercise
    * @param injects the list of Injects linked to that exercise
    * @return an Exercise Simple object
@@ -93,13 +93,16 @@ public class ExerciseSimple {
     ExerciseSimple simple = new ExerciseSimple();
     simple.setId(exercise.getExercise_id());
     simple.setName(exercise.getExercise_name());
-    if(exercise.getExercise_tags() != null) {
-      simple.setTags(exercise.getExercise_tags().stream().map((tagId) -> {
-          Tag tag = new Tag();
-          tag.setId(tagId);
-          return tag;
-        }
-      ).collect(Collectors.toSet()));
+    if (exercise.getExercise_tags() != null) {
+      simple.setTags(
+          exercise.getExercise_tags().stream()
+              .map(
+                  (tagId) -> {
+                    Tag tag = new Tag();
+                    tag.setId(tagId);
+                    return tag;
+                  })
+              .collect(Collectors.toSet()));
     } else {
       simple.setTags(new HashSet<>());
     }
@@ -110,14 +113,14 @@ public class ExerciseSimple {
     simple.setUpdatedAt(exercise.getExercise_updated_at());
 
     // We set the ExpectationResults
-    simple.setExpectationResultByTypes(AtomicTestingUtils
-            .getExpectationResultByTypes(injects.stream().flatMap(inject -> inject.getExpectations().stream()).toList()));
-    if(injects != null) {
+    simple.setExpectationResultByTypes(
+        AtomicTestingUtils.getExpectationResultByTypes(
+            injects.stream().flatMap(inject -> inject.getExpectations().stream()).toList()));
+    if (injects != null) {
       simple.setTargets(computeTargetResults(injects));
     } else {
       simple.setTargets(new ArrayList<>());
     }
     return simple;
   }
-
 }

@@ -4,9 +4,7 @@ import jakarta.validation.constraints.NotBlank;
 
 public class StringUtils {
 
-  private StringUtils() {
-
-  }
+  private StringUtils() {}
 
   public static final int MAX_SIZE_OF_STRING = 255;
 
@@ -17,5 +15,4 @@ public class StringUtils {
     }
     return newName;
   }
-
 }
